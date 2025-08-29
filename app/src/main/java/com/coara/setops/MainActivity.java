@@ -1,4 +1,4 @@
-package com.coara.setops;
+package com.coara.execapp;
 
 import android.Manifest;
 import android.app.Activity;
@@ -34,56 +34,71 @@ import java.util.concurrent.Executors;
 public class MainActivity extends Activity {
 
     private static final int PERMISSION_REQUEST_CODE = 1001;
+    private static final long OUTPUT_TIMEOUT = 5000; 
 
     private TextView resultView;
     private boolean isRootAvailable = false;
     private Process currentProcess;
     private Handler timeoutHandler;
     private Runnable timeoutRunnable;
-    private static final long OUTPUT_TIMEOUT = 5000; // 5 seconds
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         setTheme(android.R.style.Theme_Holo);
         super.onCreate(savedInstanceState);
 
-        // Create layout programmatically
+        
         LinearLayout mainLayout = new LinearLayout(this);
         mainLayout.setOrientation(LinearLayout.VERTICAL);
-        mainLayout.setGravity(Gravity.CENTER);
+        mainLayout.setGravity(Gravity.CENTER_HORIZONTAL);
         mainLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
+        mainLayout.setPadding(16, 16, 16, 16); 
 
-        // Button in the center
+        
         Button appopsButton = new Button(this);
         appopsButton.setText("appops");
-        appopsButton.setLayoutParams(new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        buttonParams.setMargins(0, 16, 0, 16); 
+        appopsButton.setLayoutParams(buttonParams);
         appopsButton.setOnClickListener(this::onAppopsButtonClick);
 
-        // Result view
+        
+        ScrollView scrollView = new ScrollView(this);
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f); 
+        scrollView.setLayoutParams(scrollParams);
+        scrollView.setFillViewport(true); 
+
+        
         resultView = new TextView(this);
         resultView.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                0,
-                1f)); // Weighted to take remaining space
+                ViewGroup.LayoutParams.WRAP_CONTENT));
         resultView.setTextIsSelectable(true);
+        resultView.setTextSize(14); 
+        resultView.setPadding(8, 8, 8, 8); 
+        resultView.setBackgroundColor(getResources().getColor(android.R.color.white)); 
+        resultView.setTextColor(getResources().getColor(android.R.color.black)); 
 
-        // ScrollView for result
-        ScrollView scrollView = new ScrollView(this);
+        
         scrollView.addView(resultView);
 
+        
         mainLayout.addView(appopsButton);
         mainLayout.addView(scrollView);
 
         setContentView(mainLayout);
 
-        // Check permissions
+        
         checkPermissions();
 
-        // Initialize handler for timeout
+        
         timeoutHandler = new Handler(Looper.getMainLooper());
     }
 
@@ -114,10 +129,10 @@ public class MainActivity extends Activity {
 
     private void onAppopsButtonClick(View view) {
         if (!isRootAvailable) {
-            // First, check root with su -c id
+            
             checkRootAccess();
         } else {
-            // Already have root, execute appops.sh
+            
             executeAppopsScript();
         }
     }
@@ -125,7 +140,7 @@ public class MainActivity extends Activity {
     private void checkRootAccess() {
         resultView.setText("");
         String command = "su -c id";
-        executeCommand(command, true); // Check mode
+        executeCommand(command, true); 
     }
 
     private void executeAppopsScript() {
@@ -133,7 +148,7 @@ public class MainActivity extends Activity {
         File scriptFile = copyAssetToInternalStorage("appops.sh");
         if (scriptFile != null && scriptFile.setExecutable(true)) {
             String command = "su -c " + scriptFile.getAbsolutePath();
-            executeCommand(command, false); // Normal execution
+            executeCommand(command, false); 
         } else {
             resultView.setText("ERROR: appops.shのコピーまたは実行権限付与に失敗しました。");
         }
@@ -172,25 +187,39 @@ public class MainActivity extends Activity {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(currentProcess.getInputStream()));
                      BufferedReader errorReader = new BufferedReader(new InputStreamReader(currentProcess.getErrorStream()))) {
 
-                    // Initial timeout reset
+                    
                     runOnUiThread(() -> resetTimeoutRunnable(command, output, isCheckMode));
 
                     String line;
                     while ((line = reader.readLine()) != null) {
                         output.append(line).append("\n");
                         final String finalLine = line;
-                        runOnUiThread(() -> resultView.append(finalLine + "\n"));
-                        runOnUiThread(() -> resetTimeoutRunnable(command, output, isCheckMode));
+                        runOnUiThread(() -> {
+                            resultView.append(finalLine + "\n");
+                        
+                            resultView.post(() -> {
+                                ScrollView scrollView = (ScrollView) resultView.getParent();
+                                scrollView.fullScroll(View.FOCUS_DOWN);
+                            });
+                            resetTimeoutRunnable(command, output, isCheckMode);
+                        });
                     }
 
                     while ((line = errorReader.readLine()) != null) {
                         output.append("ERROR: ").append(line).append("\n");
                         final String finalErrorLine = line;
-                        runOnUiThread(() -> resultView.append("ERROR: " + finalErrorLine + "\n"));
-                        runOnUiThread(() -> resetTimeoutRunnable(command, output, isCheckMode));
+                        runOnUiThread(() -> {
+                            resultView.append("ERROR: " + finalErrorLine + "\n");
+                            
+                            resultView.post(() -> {
+                                ScrollView scrollView = (ScrollView) resultView.getParent();
+                                scrollView.fullScroll(View.FOCUS_DOWN);
+                            });
+                            resetTimeoutRunnable(command, output, isCheckMode);
+                        });
                     }
 
-                    // Remove timeout after successful read
+                    
                     runOnUiThread(() -> {
                         if (timeoutRunnable != null) {
                             timeoutHandler.removeCallbacks(timeoutRunnable);
@@ -214,7 +243,7 @@ public class MainActivity extends Activity {
                 } catch (InterruptedException e) {
                     runOnUiThread(() -> resultView.append("ERROR: " + e.getMessage() + "\n"));
                 } finally {
-                    // Clean up timeout
+                
                     runOnUiThread(() -> {
                         if (timeoutRunnable != null) {
                             timeoutHandler.removeCallbacks(timeoutRunnable);
@@ -224,7 +253,7 @@ public class MainActivity extends Activity {
             });
 
         } catch (IOException e) {
-            resultView.setText("ERROR: " + e.getMessage());
+            runOnUiThread(() -> resultView.setText("ERROR: " + e.getMessage()));
         }
     }
 
@@ -235,12 +264,14 @@ public class MainActivity extends Activity {
         timeoutRunnable = () -> {
             if (currentProcess != null && currentProcess.isAlive()) {
                 currentProcess.destroy();
-                resultView.append("INFO: 出力が停止したためプロセスを終了しました\n");
-                if (!isCheckMode) {
-                    saveLogToFile(command, output.toString());
-                } else {
-                    handleRootCheckResult(-1, output.toString()); // Failure on timeout
-                }
+                runOnUiThread(() -> {
+                    resultView.append("INFO: 出力が停止したためプロセスを終了しました\n");
+                    Toast.makeText(this, "実行が完了しました。アプリを終了します。", Toast.LENGTH_LONG).show();
+                    if (!isCheckMode) {
+                        saveLogToFile(command, output.toString());
+                    }
+                    finish();
+                });
             }
         };
         timeoutHandler.postDelayed(timeoutRunnable, OUTPUT_TIMEOUT);
@@ -263,7 +294,6 @@ public class MainActivity extends Activity {
     private void saveLogToFile(String command, String logContent) {
         File directory = new File(getExternalFilesDir(null), "command_logs");
         if (!directory.exists()) {
-            //noinspection ResultOfMethodCallIgnored
             directory.mkdirs();
         }
 
