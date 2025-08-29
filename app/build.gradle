@@ -4,7 +4,7 @@ plugins {
 
 android {
     compileSdk = 35
-    namespace = 'com.coara.execapp'
+    namespace = 'com.coara.setops'
 
     defaultConfig {
         minSdk = 21
@@ -58,3 +58,4 @@ tasks.withType(JavaCompile).configureEach {
 dependencies {
     implementation 'androidx.core:core:1.0.0'
 }
+
