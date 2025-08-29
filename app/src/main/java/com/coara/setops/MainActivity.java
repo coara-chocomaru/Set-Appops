@@ -1,4 +1,4 @@
-package com.coara.execapp;
+package com.coara.setops;
 
 import android.Manifest;
 import android.app.Activity;
