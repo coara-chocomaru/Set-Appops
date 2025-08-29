@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setTheme(android.R.style.Theme_Holo);
         super.onCreate(savedInstanceState);
 
         // Create layout programmatically
@@ -162,40 +163,39 @@ public class MainActivity extends Activity {
     }
 
     private void executeCommand(String command, boolean isCheckMode) {
+        resultView.setText("");
         try {
             currentProcess = Runtime.getRuntime().exec(command);
 
             Executors.newSingleThreadExecutor().submit(() -> {
+                StringBuilder output = new StringBuilder();
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(currentProcess.getInputStream()));
                      BufferedReader errorReader = new BufferedReader(new InputStreamReader(currentProcess.getErrorStream()))) {
 
-                    StringBuilder output = new StringBuilder();
+                    // Initial timeout reset
+                    runOnUiThread(() -> resetTimeoutRunnable(command, output, isCheckMode));
+
                     String line;
-                    boolean hasOutput = false;
-
-                    // Reset timeout
-                    resetTimeoutRunnable(command, output.toString(), isCheckMode);
-
                     while ((line = reader.readLine()) != null) {
-                        hasOutput = true;
                         output.append(line).append("\n");
                         final String finalLine = line;
                         runOnUiThread(() -> resultView.append(finalLine + "\n"));
-                        resetTimeoutRunnable(command, output.toString(), isCheckMode);
+                        runOnUiThread(() -> resetTimeoutRunnable(command, output, isCheckMode));
                     }
 
                     while ((line = errorReader.readLine()) != null) {
-                        hasOutput = true;
                         output.append("ERROR: ").append(line).append("\n");
                         final String finalErrorLine = line;
                         runOnUiThread(() -> resultView.append("ERROR: " + finalErrorLine + "\n"));
-                        resetTimeoutRunnable(command, output.toString(), isCheckMode);
+                        runOnUiThread(() -> resetTimeoutRunnable(command, output, isCheckMode));
                     }
 
-                    // If no output at all, trigger timeout immediately
-                    if (!hasOutput) {
-                        resetTimeoutRunnable(command, output.toString(), isCheckMode);
-                    }
+                    // Remove timeout after successful read
+                    runOnUiThread(() -> {
+                        if (timeoutRunnable != null) {
+                            timeoutHandler.removeCallbacks(timeoutRunnable);
+                        }
+                    });
 
                     int exitValue = currentProcess.waitFor();
                     if (isCheckMode) {
@@ -204,13 +204,22 @@ public class MainActivity extends Activity {
                         saveLogToFile(command, output.toString());
                     }
 
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
+                    runOnUiThread(() -> resultView.append("ERROR: " + e.getMessage() + "\n"));
+                    if (!isCheckMode) {
+                        saveLogToFile(command, output.toString());
+                    } else {
+                        handleRootCheckResult(-1, output.toString()); // Treat as failure
+                    }
+                } catch (InterruptedException e) {
                     runOnUiThread(() -> resultView.append("ERROR: " + e.getMessage() + "\n"));
                 } finally {
                     // Clean up timeout
-                    if (timeoutRunnable != null) {
-                        timeoutHandler.removeCallbacks(timeoutRunnable);
-                    }
+                    runOnUiThread(() -> {
+                        if (timeoutRunnable != null) {
+                            timeoutHandler.removeCallbacks(timeoutRunnable);
+                        }
+                    });
                 }
             });
 
@@ -219,36 +228,36 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void resetTimeoutRunnable(String command, String output, boolean isCheckMode) {
+    private void resetTimeoutRunnable(String command, StringBuilder output, boolean isCheckMode) {
         if (timeoutRunnable != null) {
             timeoutHandler.removeCallbacks(timeoutRunnable);
         }
         timeoutRunnable = () -> {
             if (currentProcess != null && currentProcess.isAlive()) {
                 currentProcess.destroy();
-                runOnUiThread(() -> resultView.append("INFO: 出力が停止したためプロセスを終了しました\n"));
-            }
-            if (!isCheckMode) {
-                saveLogToFile(command, output);
+                resultView.append("INFO: 出力が停止したためプロセスを終了しました\n");
+                if (!isCheckMode) {
+                    saveLogToFile(command, output.toString());
+                } else {
+                    handleRootCheckResult(-1, output.toString()); // Failure on timeout
+                }
             }
         };
         timeoutHandler.postDelayed(timeoutRunnable, OUTPUT_TIMEOUT);
     }
 
     private void handleRootCheckResult(int exitValue, String output) {
-        if (exitValue == 0 && output.contains("uid=0(root)")) {
-            isRootAvailable = true;
-            runOnUiThread(() -> {
+        runOnUiThread(() -> {
+            if (exitValue == 0 && output.contains("uid=0(root)")) {
+                isRootAvailable = true;
                 Toast.makeText(this, "Rootアクセスが許可されました。", Toast.LENGTH_SHORT).show();
                 resultView.append("Root confirmed. Now executing appops.sh...\n");
-            });
-            executeAppopsScript();
-        } else {
-            runOnUiThread(() -> {
+                executeAppopsScript();
+            } else {
                 Toast.makeText(this, "Rootアクセスが拒否されました。アプリを終了します。", Toast.LENGTH_SHORT).show();
                 finish();
-            });
-        }
+            }
+        });
     }
 
     private void saveLogToFile(String command, String logContent) {
