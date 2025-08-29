@@ -8,4 +8,3 @@ for pkg in $PACKAGES; do
     sh -c "appops get \"$pkg\" REQUEST_INSTALL_PACKAGES 2>/dev/null"
     sleep 1 
 done
-echo "不明なソース許可を設定完了: $(date)" >> /data/adb/modules/enable_unknown_sources/log.txt
