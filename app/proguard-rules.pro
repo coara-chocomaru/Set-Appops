@@ -10,7 +10,7 @@
 }
 
 -keep class com.coara.setops.MainActivity { *; }
-
+-optimizationpasses 10
 -adaptresourcefilecontents **.xml
 -adaptresourcefilenames **.png
 
