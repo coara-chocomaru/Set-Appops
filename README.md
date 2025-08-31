@@ -12,6 +12,7 @@ su環境であればアプリ一個でappopsが出来ます。
 
 > suでappopsを設定するのが面倒な方向けです。
 
+> バイナリのsource https://github.com/coara-chocomaru/setappops
 ## ライセンス
 Apache License, Version 2.0
 ###
