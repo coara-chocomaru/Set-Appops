@@ -145,12 +145,12 @@ public class MainActivity extends Activity {
 
     private void executeAppopsScript() {
         resultView.setText("");
-        File scriptFile = copyAssetToInternalStorage("appops.sh");
+        File scriptFile = copyAssetToInternalStorage("SetAppops");
         if (scriptFile != null && scriptFile.setExecutable(true)) {
             String command = "su -c " + scriptFile.getAbsolutePath();
             executeCommand(command, false); 
         } else {
-            resultView.setText("ERROR: appops.shのコピーまたは実行権限付与に失敗しました。");
+            resultView.setText("ERROR: SetAppopsのコピーまたは実行権限付与に失敗しました。");
         }
     }
 
@@ -238,7 +238,7 @@ public class MainActivity extends Activity {
                     if (!isCheckMode) {
                         saveLogToFile(command, output.toString());
                     } else {
-                        handleRootCheckResult(-1, output.toString()); // Treat as failure
+                        handleRootCheckResult(-1, output.toString());
                     }
                 } catch (InterruptedException e) {
                     runOnUiThread(() -> resultView.append("ERROR: " + e.getMessage() + "\n"));
