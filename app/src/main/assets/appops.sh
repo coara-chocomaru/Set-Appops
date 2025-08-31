@@ -100,4 +100,4 @@ fi
 echo " - 設定失敗: $set_failed"
 echo "スキップ: Manifestに権限無し: $skipped_no_permission"
 echo "警告/確認できない: $failed_checks"
-echo "処理完了しましたアプリを終了してください。"
+echo "処理が完了しましたアプリを終了してください。"
