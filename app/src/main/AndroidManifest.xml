@@ -16,7 +16,6 @@
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"
-            android:importantForAutofill="yes"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:exported="true">
             <intent-filter>
@@ -37,6 +36,7 @@
 
     </application>
 </manifest>
+
 
 
 
