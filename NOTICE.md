@@ -4,8 +4,14 @@
 - ライセンス: Apache License, Version 2.0  
 - 著作権: © The Android Open Source Project
 
+- **Annotationライブラリ**: `androidx.annotation:annotation:1.0.0`
+- 公式サイト: [androidx.annotation:annotation](https://developer.android.com/jetpack/androidx/releases/annotation?hl=ja)
+- ライセンス: Apache License, Version 2.0  
+- 著作権: © The Android Open Source Project
+
+
 ## 基本的なライセンス情報
-このアプリ(com.coara.execapp)は                        
+このアプリ(com.coara.setops)は                        
 Android Software Development Kit (SDK) を使用して開発されています。  
 Android SDKはGoogle LLCによって提供されており  
 オープンソースのApache License 2.0のもとで利用可能です。
