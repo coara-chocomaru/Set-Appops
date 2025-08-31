@@ -7,7 +7,8 @@
 
     <application
         android:allowBackup="true"
-        android:label="setops"
+        android:label="SetAppops"
+        android:icon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:requestLegacyExternalStorage="true"
         android:theme="@android:style/Theme.Holo.Light">
@@ -36,4 +37,5 @@
 
     </application>
 </manifest>
+
 
